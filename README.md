@@ -1,2 +1,2 @@
 # ModBot
-Discord moderation bot using pycord
+Discord moderation bot using pycord (https://pycord.dev/)
