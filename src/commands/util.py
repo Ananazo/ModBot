@@ -1,23 +1,24 @@
 import discord
 from discord.ext import commands
+from discord.commands import Option
 
-class Util(commands.Cog): # create a class for our cog that inherits from commands.Cog
-    # this class is used to create a cog, which is a module that can be added to the bot
-
-    def __init__(self, bot): # this is a special method that is called when the cog is loaded
+class Util(commands.Cog):
+    def __init__(self, bot):
         self.bot = bot
 
-    @discord.slash_command() # this decorator makes a slash command
-    async def ping(self, ctx): # a slash command will be created with the name "ping"
-        await ctx.respond(f"Pong! Latency is {self.bot.latency}")
+    @commands.slash_command(description="Get the bot's current latency! (30s cooldown)")
+    @commands.cooldown(1, 30, commands.BucketType.user)
+    async def ping(self, ctx: commands.Context):
+        await ctx.respond(f"Pong! Latency is {round(self.bot.latency * 1000)}ms")
 
+    @commands.slash_command(description="Clear messages")
+    async def clear(self, ctx: commands.Context, amount: Option(int, "How many messages to delete (default 5)", required = False, default = 5)):
+        await ctx.defer()
+        await ctx.channel.purge(limit=amount)
 
-    @commands.Cog.listener() # we can add event listeners to our cog
-    async def on_member_join(self, member): # this is called when a member joins the server
-    # you must enable the proper intents
-    # to access this event.
-    # See the Popular-Topics/Intents page for more info
+    @commands.Cog.listener()
+    async def on_member_join(self, member: discord.Member):
         await member.send('Welcome to the server!')
 
-def setup(bot): # this is called by Pycord to setup the cog
-    bot.add_cog(Util(bot)) # add the cog to the bot
+def setup(bot):
+    bot.add_cog(Util(bot))
