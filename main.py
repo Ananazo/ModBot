@@ -13,7 +13,7 @@ intents.message_content = True
 
 load_dotenv()
 
-bot = commands.Bot(command_prefix="/", intents=intents)
+bot = discord.Bot(intents=intents)
 
 cogs_list = [
     'util',
