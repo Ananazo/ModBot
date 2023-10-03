@@ -22,7 +22,7 @@ class Admin(commands.Cog):
     async def clear(self, ctx: commands.Context, amount: Option(int, "How many messages to delete (default 5)", required = False, default = 5)):
         await ctx.defer()
         await ctx.channel.purge(limit=amount)
-        sql = "INSERT INTO `cleared messages` (Date, Channel, Deleter, Count, Content) VALUES (%s, %s, %s, %s)"
+        sql = "INSERT INTO clemess (Date, Channel, Deleter, Count, Content) VALUES (%s, %s, %s, %s)"
         val = (datetime.datetime.now(), ctx.channel, ctx.author, str(amount))
         self.mycursor.execute(sql, val)
         self.mydb.commit()
