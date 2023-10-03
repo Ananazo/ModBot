@@ -17,7 +17,7 @@ class Admin(commands.Cog):
     @commands.Cog.listener()
     async def on_application_command_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
-            await ctx.respond("Missing permissions")
+            await ctx.respond("Missing permissions", ephemeral=True)
 
 def setup(bot):
     bot.add_cog(Admin(bot))
