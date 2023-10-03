@@ -9,8 +9,8 @@ class MyModal(discord.ui.Modal):
         self.add_item(discord.ui.InputText(label="Feedback", style=discord.InputTextStyle.long))
 
     async def callback(self, interaction: discord.Interaction):
-        embed = discord.Embed(title="Modal Results")
-        embed.add_field(name="Feedback", value=self.children[0].value)
+        embed = discord.Embed(title=f"Feedback")
+        embed.add_field(name="**Feedback**", value=self.children[0].value)
         await interaction.response.send_message(embeds=[embed])
 
 class Util(commands.Cog):

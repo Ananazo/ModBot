@@ -4,7 +4,6 @@ from discord.commands import Option
 from itertools import cycle
 import os
 from dotenv import load_dotenv
-import asyncio
 
 status = cycle(['Moderating!'])
 
