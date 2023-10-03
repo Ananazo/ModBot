@@ -16,7 +16,8 @@ load_dotenv()
 bot = commands.Bot(command_prefix="/", intents=intents)
 
 cogs_list = [
-    'util'
+    'util',
+    'admin'
 ]
 
 for cog in cogs_list:
