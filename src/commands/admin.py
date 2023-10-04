@@ -28,6 +28,34 @@ class Admin(commands.Cog):
         self.mycursor.execute(sql, val)
         self.mydb.commit()
 
+    @commands.slash_command(description="Dm")
+    @commands.has_permissions(administrator=True)
+    async def dm(self, ctx: commands.Context, who: Option(discord.User, "Who to dm?", required=True), what: Option(str, "What to dm?", required=True)):
+        await who.send(what)
+        sql = "INSERT INTO dm (Date, Sender, Reciver, Content) VALUES (%s, %s, %s, %s)"
+        val = (datetime.datetime.now(), ctx.author.id, who, what)
+        self.mycursor.execute(sql, val)
+        self.mydb.commit()
+
+    @commands.slash_command(description="Kick")
+    @commands.has_permissions(administrator=True)
+    async def kick(self, ctx: commands.Context, who: Option(discord.User, "Who to kick?", required=True), why: Option(str, "Why", required=False)):
+        await who.kick(why)
+        sql = "INSERT INTO kicks (Date, Kicker, Kicked, Reason) VALUES (%s, %s, %s, %s)"
+        val = (datetime.datetime.now(), ctx.channel.id, who, why)
+        self.mycursor.execute(sql, val)
+        self.mydb.commit()
+
+    @commands.slash_command(description="Warn")
+    @commands.has_permissions(administrator=True)
+    async def warn(self, ctx: commands.Context, who: Option(discord.User, "Who to warn?", required=True), why: Option(str, "Reason?", required=True)):
+        embed = discord.Embed(title=f"**You have been warned**")
+        await who.send(embeds=[embed])
+        sql = "INSERT INTO warns (Date, Warner, Warned, Reason) VALUES (%s, %s, %s, %s)"
+        val = (datetime.datetime.now(), ctx.author.id, who, what)
+        self.mycursor.execute(sql, val)
+        self.mydb.commit()
+
     @commands.Cog.listener()
     async def on_application_command_error(self, ctx, error):
         if isinstance(error, commands.MissingPermissions):
