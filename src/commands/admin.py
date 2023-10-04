@@ -49,7 +49,7 @@ class Admin(commands.Cog):
     @commands.slash_command(description="Warn")
     @commands.has_permissions(administrator=True)
     async def warn(self, ctx: commands.Context, who: Option(discord.User, "Who to warn?", required=True), why: Option(str, "Reason?", required=True)):
-        embed = discord.Embed(title=f"**You have been warned**")
+        embed = discord.Embed(title=f"You have been warned", description=why, color=red())
         await who.send(embeds=[embed])
         sql = "INSERT INTO warns (Date, Warner, Warned, Reason) VALUES (%s, %s, %s, %s)"
         val = (datetime.datetime.now(), ctx.author.id, who, what)
