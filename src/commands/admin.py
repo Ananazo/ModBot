@@ -2,20 +2,14 @@ import discord
 import datetime
 from discord.ext import commands
 from discord.commands import Option
-import mysql.connector
-import os
+import sys
+sys.path.insert(1, 'src')
+import sqlfu
+import time
 
 class Admin(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.mydb = mysql.connector.connect(
-            host=os.getenv('HOST'),
-            user=os.getenv('USER'),
-            password=os.getenv('PASS'),
-            database="ModBot"
-        )
-
-        self.mycursor = self.mydb.cursor()
 
     @commands.slash_command(description="Clear messages")
     @commands.has_permissions(administrator=True)
@@ -25,36 +19,39 @@ class Admin(commands.Cog):
         await ctx.channel.purge(limit=amount)
         sql = "INSERT INTO clemess (Date, Channel, Deleter, Count) VALUES (%s, %s, %s, %s)"
         val = (datetime.datetime.now(), ctx.channel.id, ctx.author.id, str(amount))
-        self.mycursor.execute(sql, val)
-        self.mydb.commit()
+        sqlfu.sqlfunc(sql, val)
 
     @commands.slash_command(description="Dm")
     @commands.has_permissions(administrator=True)
     async def dm(self, ctx: commands.Context, who: Option(discord.User, "Who to dm?", required=True), what: Option(str, "What to dm?", required=True)):
         await who.send(what)
         sql = "INSERT INTO dm (Date, Sender, Reciver, Content) VALUES (%s, %s, %s, %s)"
-        val = (datetime.datetime.now(), ctx.author.id, who, what)
-        self.mycursor.execute(sql, val)
-        self.mydb.commit()
+        val = (datetime.datetime.now(), ctx.author.id, str(who), str(what))
+        sqlfu.sqlfunc(sql, val)
+        await ctx.respond(f"{what} sent to {who}", ephemeral=True)
 
     @commands.slash_command(description="Kick")
     @commands.has_permissions(administrator=True)
     async def kick(self, ctx: commands.Context, who: Option(discord.User, "Who to kick?", required=True), why: Option(str, "Why", required=False)):
         await who.kick(why)
         sql = "INSERT INTO kicks (Date, Kicker, Kicked, Reason) VALUES (%s, %s, %s, %s)"
-        val = (datetime.datetime.now(), ctx.channel.id, who, why)
-        self.mycursor.execute(sql, val)
-        self.mydb.commit()
+        val = (datetime.datetime.now(), ctx.channel.id, str(who), str(why))
+        sqlfu.sqlfunc(sql, val)
+        await ctx.respond(f"Kicked {who}", ephemeral=True)
 
     @commands.slash_command(description="Warn")
     @commands.has_permissions(administrator=True)
     async def warn(self, ctx: commands.Context, who: Option(discord.User, "Who to warn?", required=True), why: Option(str, "Reason?", required=True)):
-        embed = discord.Embed(title=f"You have been warned", description=why, color=red())
-        await who.send(embeds=[embed])
+        ep = discord.Embed(
+            title="You have been warned",
+            description=(f"{str(why)}"),
+            color=discord.Colour.red(),
+        )
+        await who.send(embed=ep)
         sql = "INSERT INTO warns (Date, Warner, Warned, Reason) VALUES (%s, %s, %s, %s)"
-        val = (datetime.datetime.now(), ctx.author.id, who, what)
-        self.mycursor.execute(sql, val)
-        self.mydb.commit()
+        val = (datetime.datetime.now(), ctx.author.id, str(who), str(why))
+        sqlfu.sqlfunc(sql, val)
+        await ctx.respond(f"Warned {who}", ephemeral=True)
 
     @commands.Cog.listener()
     async def on_application_command_error(self, ctx, error):
