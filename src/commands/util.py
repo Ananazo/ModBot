@@ -1,6 +1,10 @@
 import discord
 from discord.ext import commands
 from discord.commands import Option
+import sys
+import datetime
+sys.path.insert(1, 'src')
+import sqlfu
 
 class MyModal(discord.ui.Modal):
     def __init__(self, *args, **kwargs) -> None:
@@ -10,8 +14,12 @@ class MyModal(discord.ui.Modal):
 
     async def callback(self, interaction: discord.Interaction):
         embed = discord.Embed(title=f"Feedback")
-        embed.add_field(name="**Feedback**", value=self.children[0].value)
-        await interaction.response.send_message(embeds=[embed])
+        value=self.children[0].value
+        embed.add_field(name="**Feedback**", value=value)
+        await interaction.response.send_message(embeds=[embed], ephemeral=True)
+        sql = "INSERT INTO feedback (Date, Giver, Feedback) VALUES (%s, %s, %s)"
+        val = (datetime.datetime.now(), interaction.user.id, value)
+        sqlfu.sqlfunc(sql, val)
 
 class Util(commands.Cog):
     def __init__(self, bot):

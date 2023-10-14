@@ -25,17 +25,28 @@ class Admin(commands.Cog):
     @commands.has_permissions(administrator=True)
     async def dm(self, ctx: commands.Context, who: Option(discord.User, "Who to dm?", required=True), what: Option(str, "What to dm?", required=True)):
         await who.send(what)
-        sql = "INSERT INTO dm (Date, Sender, Reciver, Content) VALUES (%s, %s, %s, %s)"
-        val = (datetime.datetime.now(), ctx.author.id, str(who), str(what))
-        sqlfu.sqlfunc(sql, val)
         await ctx.respond(f"{what} sent to {who}", ephemeral=True)
+        guild = ctx.guild
+        category = discord.utils.get(guild.categories, name="ModBot")
+        role = guild.get_role(1162821285592703056)
+        
+        overwrites = {
+            guild.default_role: discord.PermissionOverwrite(read_messages=False, connect=False),
+            role: discord.PermissionOverwrite(read_messages=True, send_messages=True, connect=True, speak=True)
+        }
+
+        channel = discord.utils.get(category.text_channels, name=str(who.id))
+        if channel is None:
+            channel = await category.create_text_channel(str(who.id), overwrites=overwrites)
+        
+        await channel.send(f"{what} sent to {who}")
 
     @commands.slash_command(description="Kick")
     @commands.has_permissions(administrator=True)
     async def kick(self, ctx: commands.Context, who: Option(discord.User, "Who to kick?", required=True), why: Option(str, "Why", required=False)):
         await who.kick(why)
         sql = "INSERT INTO kicks (Date, Kicker, Kicked, Reason) VALUES (%s, %s, %s, %s)"
-        val = (datetime.datetime.now(), ctx.channel.id, str(who), str(why))
+        val = (datetime.datetime.now(), ctx.channel.id, str(who.id), str(why))
         sqlfu.sqlfunc(sql, val)
         await ctx.respond(f"Kicked {who}", ephemeral=True)
 
@@ -49,7 +60,7 @@ class Admin(commands.Cog):
         )
         await who.send(embed=ep)
         sql = "INSERT INTO warns (Date, Warner, Warned, Reason) VALUES (%s, %s, %s, %s)"
-        val = (datetime.datetime.now(), ctx.author.id, str(who), str(why))
+        val = (datetime.datetime.now(), ctx.author.id, str(who.id), str(why))
         sqlfu.sqlfunc(sql, val)
         await ctx.respond(f"Warned {who}", ephemeral=True)
 
