@@ -11,11 +11,14 @@ class Events(commands.Cog):
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild):
-        # Your on_guild_join code here
-
-    @commands.Cog.listener()
-    async def on_message(self, message):
-        # Your on_message code here
+        category = await guild.create_category("ModBot")
+        role = guild.get_role(1162821285592703056) 
+        overwrites = {
+            guild.default_role: discord.PermissionOverwrite(read_messages=False, connect=False),
+            role: discord.PermissionOverwrite(read_messages=True, send_messages=True, connect=True, speak=True)
+        }
+        await category.edit(overwrites=overwrites)
+        await guild.create_text_channel("ModBot", category=category, overwrites=overwrites)
 
 def setup(bot):
     bot.add_cog(Events(bot))

@@ -21,14 +21,30 @@ class Admin(commands.Cog):
     async def dm(self, ctx: commands.Context, who: Option(discord.User, "Who to dm?", required=True), what: Option(str, "What to dm?", required=True)):
         await who.send(what)
         await ctx.respond(f"{what} sent to {who}", ephemeral=True)
-        channel = await self.get_or_create_channel(ctx, who)
-        await channel.send(f"{what} sent to {who}")
+        sqlfu.sqlfunc("INSERT INTO dm_guilds (user_id, guild_id) VALUES (%s, %s)", 
+                    (who.id, ctx.guild.id))
+
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        if message.author.bot:
+            return
+
+        if isinstance(message.channel, discord.channel.DMChannel):
+            channel_name = str(message.author.id)
+            result = sqlfu.sqlfunc("SELECT guild_id FROM dm_guilds WHERE user_id = %s", 
+                                (message.author.id,))
+            if result:
+                guild_id = result[0][0]
+                guild = self.bot.get_guild(guild_id)
+                channel = discord.utils.get(guild.text_channels, name=channel_name)
+                if channel:
+                    await channel.send(message.content)
 
     async def kick_user(self, ctx, who, reason):
         try:
             await who.kick(reason=reason)
             sqlfu.sqlfunc("INSERT INTO kicks (Date, Kicker, Kicked, Reason) VALUES (%s, %s, %s, %s)", 
-                          (datetime.datetime.now(), ctx.channel.id, str(who.id), str(reason)))
+                        (datetime.datetime.now(), ctx.channel.id, str(who.id), str(reason)))
             return True
         except Exception as e:
             print(f"Error kicking user: {e}")
