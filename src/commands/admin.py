@@ -4,6 +4,24 @@ from discord.commands import Option
 import datetime
 import sqlfu
 
+from discord.ui import Button, View, TextInput
+
+class BlacklistView(View):
+    def __init__(self):
+        super().__init__()
+        self.add_item(TextInput(custom_id="blacklist", placeholder="Enter words separated by commas", min_length=1, max_length=100))
+        self.add_item(Button(style=ButtonStyle.green, label="Save", custom_id="save"))
+
+    async def interaction_check(self, interaction: Interaction) -> bool:
+        return interaction.user.id == interaction.message.author.id
+
+    @ui.button(label="Save", custom_id="save", style=ButtonStyle.green)
+    async def save_button(self, button: ui.Button, interaction: Interaction):
+        blacklist = interaction.message.interaction.data["values"][0].split(',')
+        Admin.BLACKLISTED_WORDS = [word.strip() for word in blacklist]
+        await interaction.response.send_message("Blacklist updated!", ephemeral=True)
+
+
 class Admin(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -82,6 +100,26 @@ class Admin(commands.Cog):
             await ctx.respond(f"Warned {who}", ephemeral=True)
         else:
             await ctx.respond(f"Failed to warn {who}", ephemeral=True)
+
+    BLACKLISTED_WORDS = []  # Blacklist is empty by default
+
+    @commands.slash_command(description="Edit blacklist")
+    @commands.has_permissions(administrator=True)
+    async def edit_blacklist(self, ctx):
+        view = BlacklistView()
+        await ctx.send("Enter the blacklisted words, separated by commas:", view=view)
+
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        if message.author.bot:
+            return
+
+        # Check for blacklisted words
+        message_content = message.content.lower()
+        for word in self.BLACKLISTED_WORDS:
+            if word in message_content:
+                await self.warn_user(message.context, message.author, f"Used blacklisted word: {word}")
+                break
 
     async def ban_user(self, ctx, who, reason, duration):
         try:
