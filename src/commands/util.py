@@ -10,12 +10,15 @@ class MyModal(discord.ui.Modal):
         self.add_item(discord.ui.InputText(label="Feedback", style=discord.InputTextStyle.long))
 
     async def callback(self, interaction: discord.Interaction):
-        embed = discord.Embed(title="Feedback")
-        value = self.children[0].value
-        embed.add_field(name="**Feedback**", value=value)
-        await interaction.response.send_message(embeds=[embed], ephemeral=True)
-        sqlfu.sqlfunc("INSERT INTO feedback (Date, Giver, Feedback) VALUES (%s, %s, %s)", 
-                      (datetime.datetime.now(), interaction.user.id, value))
+        try:
+            embed = discord.Embed(title="Feedback")
+            value = self.children[0].value
+            embed.add_field(name="**Feedback**", value=value)
+            await interaction.response.send_message(embeds=[embed], ephemeral=True)
+            sqlfu.sqlfunc("INSERT INTO feedback (Date, Giver, Feedback) VALUES (%s, %s, %s)", 
+                          (datetime.datetime.now(), interaction.user.id, value))
+        except Exception as e:
+            print(f"Error handling feedback: {e}")
 
 class Util(commands.Cog):
     def __init__(self, bot):
@@ -28,11 +31,17 @@ class Util(commands.Cog):
 
     @commands.slash_command()
     async def feedback(self, ctx: discord.ApplicationContext):
-        await ctx.send_modal(MyModal())
+        try:
+            await ctx.send_modal(MyModal())
+        except Exception as e:
+            print(f"Error sending feedback modal: {e}")
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
-        await member.send('Welcome to the server!')
+        try:
+            await member.send('Welcome to the server!')
+        except Exception as e:
+            print(f"Error sending welcome message: {e}")
 
 def setup(bot):
     bot.add_cog(Util(bot))

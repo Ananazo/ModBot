@@ -5,14 +5,25 @@ mydb = None
 
 def sqlfunc(sql, val):
     global mydb
-    if mydb is None:
-        mydb = mysql.connector.connect(
-            host=os.getenv('HOST'),
-            user=os.getenv('USER'),
-            password=os.getenv('PASS'),
-            database="ModBot"
-        )
-    mycursor = mydb.cursor()
-    mycursor.execute(sql, val)
-    mydb.commit()
-    mycursor.close()
+    result = None
+    try:
+        if mydb is None:
+            mydb = mysql.connector.connect(
+                host=os.getenv('HOST'),
+                user=os.getenv('USER'),
+                password=os.getenv('PASS'),
+                database="ModBot"
+            )
+        mycursor = mydb.cursor()
+        mycursor.execute(sql, val)
+        if mycursor.with_rows:
+            result = mycursor.fetchall()
+        mydb.commit()
+    except mysql.connector.Error as err:
+        print(f"Something went wrong: {err}")
+    finally:
+        if mycursor and mycursor.is_connected():
+            mycursor.close()
+        if mydb and mydb.is_connected():
+            mydb.close()
+    return result
