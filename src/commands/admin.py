@@ -58,9 +58,8 @@ class Admin(commands.Cog):
                 if channel:
                     await channel.send(message.content)
 
-    async def kick_user(self, ctx, who, reason):
+    async def kick_user(self, ctx, who, reason, guild_id):
         try:
-            guild_id = ctx.guild.id
             await who.kick(reason=reason)
             sqlfu.sqlfunc("INSERT INTO kicks (Date, Kicker, Kicked, Reason, Guild) VALUES (%s, %s, %s, %s, %s)", 
                         (datetime.datetime.now(), ctx.channel.id, str(who.id), str(reason), guild_id))
@@ -78,7 +77,8 @@ class Admin(commands.Cog):
     @commands.slash_command(description="Kick")
     @commands.has_permissions(administrator=True)
     async def kick(self, ctx: commands.Context, who: Option(discord.User, "Who to kick?", required=True), why: Option(str, "Why", required=False)):
-        if await self.kick_user(ctx, who, why):
+        guild_id = ctx.guild.id
+        if await self.kick_user(ctx, who, why, guild_id):
             await ctx.respond(f"Kicked {who}", ephemeral=True)
         else:
             await ctx.respond(f"Failed to kick {who}", ephemeral=True)
