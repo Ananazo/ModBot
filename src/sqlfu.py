@@ -27,3 +27,8 @@ def sqlfunc(sql, val):
         if mydb and mydb.is_connected():
             mydb.close()
     return result
+def get_admin_role_id(guild):
+    for role in guild.roles:
+        if role.permissions.administrator:
+            return role.id
+    return None

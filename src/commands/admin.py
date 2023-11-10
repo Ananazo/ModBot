@@ -6,21 +6,21 @@ import sqlfu
 
 from discord.ui import Button, View, TextInput
 
-class BlacklistView(View):
+class GuildSettings(discord.ui.Modal):
     def __init__(self):
-        super().__init__()
-        self.add_item(TextInput(custom_id="blacklist", placeholder="Enter words separated by commas", min_length=1, max_length=100))
-        self.add_item(Button(style=ButtonStyle.green, label="Save", custom_id="save"))
+        super().__init__(title="Change Testh and Warn Count")
+        self.add_item(discord.ui.InputText(label="Testh", placeholder="Enter new Testh value"))
+        self.add_item(discord.ui.InputText(label="Warn Count", placeholder="Enter new Warn Count value"))
 
-    async def interaction_check(self, interaction: Interaction) -> bool:
-        return interaction.user.id == interaction.message.author.id
-
-    @ui.button(label="Save", custom_id="save", style=ButtonStyle.green)
-    async def save_button(self, button: ui.Button, interaction: Interaction):
-        blacklist = interaction.message.interaction.data["values"][0].split(',')
-        Admin.BLACKLISTED_WORDS = [word.strip() for word in blacklist]
-        await interaction.response.send_message("Blacklist updated!", ephemeral=True)
-
+    async def callback(self, interaction: discord.Interaction):
+        try:
+            testh_value = int(self.children[0].value)
+            warn_count_value = int(self.children[1].value)
+            guild_id = interaction.guild.id
+            sqlfu.sqlfunc("UPDATE guilds SET testh = %s, warn_count = %s WHERE guild = %s", (testh_value, warn_count_value, guild_id))
+            await interaction.response.send_message("Testh and Warn Count updated successfully", ephemeral=True)
+        except Exception as e:
+            print(f"Error updating Testh and Warn Count: {e}")
 
 class Admin(commands.Cog):
     def __init__(self, bot):
@@ -31,8 +31,8 @@ class Admin(commands.Cog):
     async def clear(self, ctx: commands.Context, amount: Option(int, "How many messages to delete (default 5)", required=False, default=5)):
         await ctx.defer()
         await ctx.channel.purge(limit=amount+1)
-        sqlfu.sqlfunc("INSERT INTO clemess (Date, Channel, Deleter, Count) VALUES (%s, %s, %s, %s)", 
-                       (datetime.datetime.now(), ctx.channel.id, ctx.author.id, str(amount+1)))
+        sqlfu.sqlfunc("INSERT INTO clemess (Date, Server, Channel, Deleter, Count) VALUES (%s, %s, %s, %s, %s)", 
+                       (datetime.datetime.now(), ctx.guild.id, ctx.channel.id, ctx.author.id, str(amount+1))) #Remember to update your database schema to include the new Server field.
 
     @commands.slash_command(description="Dm")
     @commands.has_permissions(administrator=True)
@@ -60,13 +60,20 @@ class Admin(commands.Cog):
 
     async def kick_user(self, ctx, who, reason):
         try:
+            guild_id = ctx.guild.id
             await who.kick(reason=reason)
-            sqlfu.sqlfunc("INSERT INTO kicks (Date, Kicker, Kicked, Reason) VALUES (%s, %s, %s, %s)", 
-                        (datetime.datetime.now(), ctx.channel.id, str(who.id), str(reason)))
+            sqlfu.sqlfunc("INSERT INTO kicks (Date, Kicker, Kicked, Reason, Guild) VALUES (%s, %s, %s, %s, %s)", 
+                        (datetime.datetime.now(), ctx.channel.id, str(who.id), str(reason), guild_id))
             return True
         except Exception as e:
             print(f"Error kicking user: {e}")
             return False
+
+    @commands.slash_command(description="guild settings")
+    @commands.has_permissions(administrator=True)
+    async def change_testh_warn_count(self, ctx: commands.Context):
+        view = GuildSettings()
+        await ctx.respond("guild settings", view=view)
 
     @commands.slash_command(description="Kick")
     @commands.has_permissions(administrator=True)
@@ -78,15 +85,23 @@ class Admin(commands.Cog):
             
     async def warn_user(self, ctx, who, reason):
         try:
-            sqlfu.sqlfunc("INSERT INTO warns (Date, Warner, Warned, Reason) VALUES (%s, %s, %s, %s)",
-                          (datetime.datetime.now(), ctx.author.id, str(who.id), str(reason)))
-            warnings_count = sqlfu.sqlfunc("SELECT COUNT(*) FROM warns WHERE Warned = %s", (str(who.id),))
-            last_kick = sqlfu.sqlfunc("SELECT MAX(Date) FROM kicks WHERE Kicked = %s", (str(who.id),))
-            if last_kick and (datetime.datetime.now() - last_kick).total_seconds() < 24 * 60 * 60:
-                await self.ban_user(ctx, who, "Banned for receiving a warning within 24 hours of being kicked", 1)
-            elif warnings_count > 3:
-                await self.kick_user(ctx, who, "Kicked for receiving more than three warnings")
-            ep = discord.Embed(title="You have been warned", description=(f"{str(reason)}\nThis is your {warnings_count} warning."), color=discord.Colour.red())
+            guild_id = ctx.guild.id
+            result = sqlfu.sqlfunc("SELECT testh, warn_count FROM guilds WHERE guild = %s", (guild_id,))
+            if result:
+                testh, warn_count = result[0]
+            else:
+                print(f"No settings found for guild: {guild_id}")
+                return False
+
+            sqlfu.sqlfunc("INSERT INTO warns (Date, Warner, Warned, Reason, Guild) VALUES (%s, %s, %s, %s, %s)",
+                        (datetime.datetime.now(), ctx.author.id, str(who.id), str(reason), guild_id))
+            warnings_count = sqlfu.sqlfunc("SELECT COUNT(*) FROM warns WHERE Warned = %s AND Guild = %s", (str(who.id), guild_id))
+            last_kick = sqlfu.sqlfunc("SELECT MAX(Date) FROM kicks WHERE Kicked = %s AND Guild = %s", (str(who.id), guild_id))
+            if last_kick and (datetime.datetime.now() - last_kick[0]).total_seconds() < testh * 60 * 60:
+                await self.ban_user(ctx, who, f"Banned for receiving a warning within {testh} hours of being kicked", 1, guild_id)
+            elif warnings_count[0][0] > warn_count:
+                await self.kick_user(ctx, who, f"Kicked for receiving more than {warn_count} warnings")
+            ep = discord.Embed(title="You have been warned", description=(f"{str(reason)}\nThis is your {warnings_count[0][0]} warning."), color=discord.Colour.red())
             await who.send(embed=ep)
             return True
         except Exception as e:
@@ -101,31 +116,11 @@ class Admin(commands.Cog):
         else:
             await ctx.respond(f"Failed to warn {who}", ephemeral=True)
 
-    BLACKLISTED_WORDS = []  # Blacklist is empty by default
-
-    @commands.slash_command(description="Edit blacklist")
-    @commands.has_permissions(administrator=True)
-    async def edit_blacklist(self, ctx):
-        view = BlacklistView()
-        await ctx.send("Enter the blacklisted words, separated by commas:", view=view)
-
-    @commands.Cog.listener()
-    async def on_message(self, message):
-        if message.author.bot:
-            return
-
-        # Check for blacklisted words
-        message_content = message.content.lower()
-        for word in self.BLACKLISTED_WORDS:
-            if word in message_content:
-                await self.warn_user(message.context, message.author, f"Used blacklisted word: {word}")
-                break
-
-    async def ban_user(self, ctx, who, reason, duration):
+    async def ban_user(self, ctx, who, reason, duration, guild_id):
         try:
             await ctx.guild.ban(who, reason=reason)
-            sqlfu.sqlfunc("INSERT INTO bans (Date, Banner, Banned, Reason, Duration) VALUES (%s, %s, %s, %s, %s)",
-                          (datetime.datetime.now(), ctx.author.id, str(who.id), str(reason), duration))
+            sqlfu.sqlfunc("INSERT INTO bans (Date, Banner, Banned, Reason, Duration, Guild) VALUES (%s, %s, %s, %s, %s, %s)",
+                        (datetime.datetime.now(), ctx.author.id, str(who.id), str(reason), duration, guild_id))
             return True
         except Exception as e:
             print(f"Error banning user: {e}")
@@ -134,8 +129,8 @@ class Admin(commands.Cog):
     @commands.slash_command(description="Ban")
     @commands.has_permissions(administrator=True)
     async def ban(self, ctx: commands.Context, who: Option(discord.User, "Who to ban?", required=True), reason: Option(str, "Reason?", required=True), duration: Option(int, "Duration in hours?", required=True)): 
-
-        if await self.ban_user(ctx, who, reason, duration):
+        guild_id = ctx.guild.id
+        if await self.ban_user(ctx, who, reason, duration, guild_id):
             asyncio.create_task(self.unban_after_delay(ctx, who, duration))
             await ctx.respond(f"Banned {who} for {duration} hours", ephemeral=True)
         else:
@@ -156,7 +151,7 @@ class Admin(commands.Cog):
     async def get_or_create_channel(self, ctx, who):
         guild = ctx.guild
         category = discord.utils.get(guild.categories, name="ModBot")
-        role = guild.get_role(1162821285592703056)
+        role = guild.get_role(sqlfu.get_admin_role_id(guild))
         
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(read_messages=False, connect=False),
