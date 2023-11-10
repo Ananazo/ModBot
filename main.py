@@ -16,10 +16,7 @@ load_dotenv()
 
 bot = discord.Bot(intents=intents)
 
-cogs_list = [
-    'util',
-    'admin'
-]
+cogs_list = ['util', 'admin']
 
 for cog in cogs_list:
     bot.load_extension(f'src.commands.{cog}')
@@ -42,41 +39,23 @@ async def on_guild_join(guild: discord.Guild):
 
 @bot.event
 async def on_message(message):
+    if message.author.bot:
+        return
+
     if isinstance(message.channel, discord.channel.DMChannel):
-        if message.author.bot:
-            return
         channel_name = str(message.author.id)
-        try:
-            guild = bot.get_guild(1158488964085321738)
-            target_channel_name = channel_name
-            channel = discord.utils.get(guild.text_channels, name=target_channel_name)
-        except ValueError:
-            return
-        if channel is not None:
-            try:
-                await channel.send(f"{message.content}")
-            except discord.HTTPException as e:
-                print(f"Error sending ")
-        else:
-            print(f"Channel not found.")
+        guild = bot.get_guild(1158488964085321738)
+        channel = discord.utils.get(guild.text_channels, name=channel_name)
+        if channel:
+            await channel.send(message.content)
     else:
-        if message.author.bot:
-            return
-        channel_name = message.channel.name
         try:
-            user_id = int(channel_name)
+            user_id = int(message.channel.name)
+            user = bot.get_user(user_id)
+            if user:
+                await user.send(message.content)
         except ValueError:
             return
-        
-        user = bot.get_user(user_id)
-        
-        if user is not None:
-            try:
-                await user.send(f"{message.content}")
-            except discord.HTTPException as e:
-                print(f"Error sending a DM to user {user_id}: {e}")
-        else:
-            print(f"User with ID {user_id} not found.")
 
 @tasks.loop(minutes=30)
 async def change_status():

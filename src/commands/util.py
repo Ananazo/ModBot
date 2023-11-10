@@ -1,25 +1,21 @@
 import discord
 from discord.ext import commands
 from discord.commands import Option
-import sys
 import datetime
-sys.path.insert(1, 'src')
 import sqlfu
 
 class MyModal(discord.ui.Modal):
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-
+    def __init__(self):
+        super().__init__(title="Feedback")
         self.add_item(discord.ui.InputText(label="Feedback", style=discord.InputTextStyle.long))
 
     async def callback(self, interaction: discord.Interaction):
-        embed = discord.Embed(title=f"Feedback")
-        value=self.children[0].value
+        embed = discord.Embed(title="Feedback")
+        value = self.children[0].value
         embed.add_field(name="**Feedback**", value=value)
         await interaction.response.send_message(embeds=[embed], ephemeral=True)
-        sql = "INSERT INTO feedback (Date, Giver, Feedback) VALUES (%s, %s, %s)"
-        val = (datetime.datetime.now(), interaction.user.id, value)
-        sqlfu.sqlfunc(sql, val)
+        sqlfu.sqlfunc("INSERT INTO feedback (Date, Giver, Feedback) VALUES (%s, %s, %s)", 
+                      (datetime.datetime.now(), interaction.user.id, value))
 
 class Util(commands.Cog):
     def __init__(self, bot):
@@ -32,14 +28,11 @@ class Util(commands.Cog):
 
     @commands.slash_command()
     async def feedback(self, ctx: discord.ApplicationContext):
-        """Shows an example of a modal dialog being invoked from a slash command."""
-        modal = MyModal(title="Feedback")
-        await ctx.send_modal(modal)
+        await ctx.send_modal(MyModal())
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
         await member.send('Welcome to the server!')
-
 
 def setup(bot):
     bot.add_cog(Util(bot))
