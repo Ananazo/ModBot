@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 from discord.commands import Option
 import datetime
-import sqlfu
+import src.sqlfu as sqlfu
 from datetime import datetime
 
 class MyModal(discord.ui.Modal):
@@ -16,8 +16,8 @@ class MyModal(discord.ui.Modal):
             value = self.children[0].value
             embed.add_field(name="**Feedback**", value=value)
             await interaction.response.send_message(embeds=[embed], ephemeral=True)
-            sqlfu.sqlfunc("INSERT INTO feedback (Date, Giver, Feedback) VALUES (%s, %s, %s)", 
-                          (datetime.datetime.now(), interaction.user.id, value))
+            sqlfu.sqlfunc("INSERT INTO feedback (Date, Giver, Feedback, Guild) VALUES (%s, %s, %s)", 
+                          (datetime.now(), interaction.user.id, value, self.guild.id))
         except Exception as e:
             print(f"Error handling feedback: {e}")
 
@@ -30,17 +30,16 @@ class Util(commands.Cog):
     async def info(self, ctx: commands.Context, member: discord.Member):
         server = ctx.guild
         uptime = datetime.now() - self.start_time
-        counter = 0  # Initialize counter
+        counter = 0 
         async for message in ctx.channel.history(limit = 10000):
             if message.author == member:
                 counter += 1
         info = (
             f"Server size: {len(server.members)} members\n"
             f"Bot uptime: {uptime}\n"
-            f"I'm in {len(self.bot.guilds)} servers!"  # Use self.bot.guilds
+            f"I'm in {len(self.bot.guilds)} servers!\n" 
+            f'{member.mention} has sent **{counter}** messages in this channel.'
         )
-        if member != None:
-            info += f'{member.mention} has sent **{counter}** messages in this channel.'
         await ctx.respond(info, ephemeral=True)
 
         

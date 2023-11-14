@@ -7,7 +7,7 @@ def sqlfunc(sql, val):
     global mydb
     result = None
     try:
-        if mydb is None:
+        if mydb is None or not mydb.is_connected():
             mydb = mysql.connector.connect(
                 host=os.getenv('HOST'),
                 user=os.getenv('USER'),
@@ -22,7 +22,7 @@ def sqlfunc(sql, val):
     except mysql.connector.Error as err:
         print(f"Something went wrong: {err}")
     finally:
-        if mycursor and mycursor.is_connected():
+        if mycursor:
             mycursor.close()
         if mydb and mydb.is_connected():
             mydb.close()

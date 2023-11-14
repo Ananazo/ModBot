@@ -1,5 +1,6 @@
 from discord.ext import commands
-import sqlfu
+import discord
+import src.sqlfu as sqlfu
 
 class Events(commands.Cog):
     def __init__(self, bot):
@@ -8,8 +9,6 @@ class Events(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         print(f"{self.bot.user} is online")
-        self.bot.get_cog("Main").change_status.start()
-
     @commands.Cog.listener()
     async def on_guild_join(self, guild):
         category = await guild.create_category("ModBot")
@@ -22,6 +21,6 @@ class Events(commands.Cog):
         await guild.create_text_channel("ModBot", category=category, overwrites=overwrites)
         testh_value = 24
         warn_count_value = 3
-        sqlfu.sqlfunc("INSERT INTO guilds (guild, testh, warn_count) VALUES (%s, %s, %s)", (guild_id, testh_value, warn_count_value))
+        sqlfu.sqlfunc("INSERT INTO guilds (guild, testh, warn_count) VALUES (%s, %s, %s)", (guild.id, testh_value, warn_count_value))
 def setup(bot):
     bot.add_cog(Events(bot))

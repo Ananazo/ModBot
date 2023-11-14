@@ -1,3 +1,4 @@
 py-cord
 python-dotenv
 mysql-connector-python
+asyncio

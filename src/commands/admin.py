@@ -1,10 +1,8 @@
 import discord
 from discord.ext import commands
 from discord.commands import Option
-import datetime
-import sqlfu
-
-from discord.ui import Button, View, TextInput
+import datetime 
+import src.sqlfu as sqlfu
 
 class GuildSettings(discord.ui.Modal):
     def __init__(self):
@@ -32,32 +30,8 @@ class Admin(commands.Cog):
         await ctx.defer()
         await ctx.channel.purge(limit=amount+1)
         sqlfu.sqlfunc("INSERT INTO clemess (Date, Server, Channel, Deleter, Count) VALUES (%s, %s, %s, %s, %s)", 
-                       (datetime.datetime.now(), ctx.guild.id, ctx.channel.id, ctx.author.id, str(amount+1))) #Remember to update your database schema to include the new Server field.
-
-    @commands.slash_command(description="Dm")
-    @commands.has_permissions(administrator=True)
-    async def dm(self, ctx: commands.Context, who: Option(discord.User, "Who to dm?", required=True), what: Option(str, "What to dm?", required=True)):
-        await who.send(what)
-        await ctx.respond(f"{what} sent to {who}", ephemeral=True)
-        sqlfu.sqlfunc("INSERT INTO dm_guilds (user_id, guild_id) VALUES (%s, %s)", 
-                    (who.id, ctx.guild.id))
-
-    @commands.Cog.listener()
-    async def on_message(self, message):
-        if message.author.bot:
-            return
-
-        if isinstance(message.channel, discord.channel.DMChannel):
-            channel_name = str(message.author.id)
-            result = sqlfu.sqlfunc("SELECT guild_id FROM dm_guilds WHERE user_id = %s", 
-                                (message.author.id,))
-            if result:
-                guild_id = result[0][0]
-                guild = self.bot.get_guild(guild_id)
-                channel = discord.utils.get(guild.text_channels, name=channel_name)
-                if channel:
-                    await channel.send(message.content)
-
+                       (datetime.datetime.now(), ctx.guild.id, ctx.channel.id, ctx.author.id, str(amount+1))) 
+        
     async def kick_user(self, ctx, who, reason, guild_id):
         try:
             await who.kick(reason=reason)
@@ -76,7 +50,7 @@ class Admin(commands.Cog):
 
     @commands.slash_command(description="Kick")
     @commands.has_permissions(administrator=True)
-    async def kick(self, ctx: commands.Context, who: Option(discord.User, "Who to kick?", required=True), why: Option(str, "Why", required=False)):
+    async def kick(self, ctx: commands.Context, who: Option(discord.User, "Who to kick?", required=True), why: Option(str, "Why", required=True)):
         guild_id = ctx.guild.id
         if await self.kick_user(ctx, who, why, guild_id):
             await ctx.respond(f"Kicked {who}", ephemeral=True)
@@ -97,10 +71,10 @@ class Admin(commands.Cog):
                         (datetime.datetime.now(), ctx.author.id, str(who.id), str(reason), guild_id))
             warnings_count = sqlfu.sqlfunc("SELECT COUNT(*) FROM warns WHERE Warned = %s AND Guild = %s", (str(who.id), guild_id))
             last_kick = sqlfu.sqlfunc("SELECT MAX(Date) FROM kicks WHERE Kicked = %s AND Guild = %s", (str(who.id), guild_id))
-            if last_kick and (datetime.datetime.now() - last_kick[0]).total_seconds() < testh * 60 * 60:
+            if last_kick is not None and last_kick[0][0] is not None and (datetime.datetime.now() - last_kick[0][0]).total_seconds() < testh * 60 * 60:
                 await self.ban_user(ctx, who, f"Banned for receiving a warning within {testh} hours of being kicked", 1, guild_id)
-            elif warnings_count[0][0] > warn_count:
-                await self.kick_user(ctx, who, f"Kicked for receiving more than {warn_count} warnings")
+            elif int(warnings_count[0][0]) > int(warn_count):
+                await self.kick_user(ctx, who, f"Kicked for receiving more than {warn_count} warnings", guild_id)
             ep = discord.Embed(title="You have been warned", description=(f"{str(reason)}\nThis is your {warnings_count[0][0]} warning."), color=discord.Colour.red())
             await who.send(embed=ep)
             return True
