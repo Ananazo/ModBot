@@ -24,8 +24,9 @@ pip install -r requirements.txt
 3. Set up your MySQL database and add your database connection details to a .env file in the root directory.
 
 ```sh
-HOST=localhost
-USER=root
+TOKEN=your_discord_token
+HOST=host
+USER=username
 PASS=password
 ```
 
@@ -41,4 +42,4 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 
 ## Donate
 
-If you want to provide financial support, you can do so through Patreon, Paypal or Buy Me a Coffee. Any amount is appreciated and will help with the continued development of this project.
+If you want to provide financial support, you can do so through Patreon, Paypal or [Buy Me a Coffee](https://www.buymeacoffee.com/ananazzo). Any amount is appreciated and will help with the continued development of this project.
