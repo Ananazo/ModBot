@@ -1,3 +1,5 @@
+[![Donate](https://img.shields.io/badge/Buy%20me%20a%20cofere)](https://www.buymeacoffee.com/ananazzo)
+
 # ModBot
 
 ModBot is a Discord moderation bot built with Python. It provides various moderation features like warning users, kicking users, and more.
@@ -39,7 +41,3 @@ python main.py
 ## Contributing
 
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
-
-## Donate
-
-If you want to provide financial support, you can do so through Patreon, Paypal or [Buy Me a Coffee](https://www.buymeacoffee.com/ananazzo). Any amount is appreciated and will help with the continued development of this project.
