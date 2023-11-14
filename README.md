@@ -1,12 +1,6 @@
 # ModBot
 
-ModBot is a Discord moderation bot built with [pycord](https://pycord.dev/), a modern, easy-to-use, feature-rich, and async-ready API wrapper for Discord written in Python.
-
-## Features
-
-- Moderation commands (kick, ban, warn, etc.)
-- Event handling (member join, member leave, etc.)
-- Utility commands (ping, feedback, etc.)
+ModBot is a Discord moderation bot built with Python. It provides various moderation features like warning users, kicking users, and more.
 
 ## Requirements
 
@@ -22,12 +16,21 @@ git clone https://github.com/Ananazzo/ModBot.git
 ```
 
 2. Install the required Python packages:
+
 ```sh
 pip install -r requirements.txt
 ```
+
 3. Set up your MySQL database and add your database connection details to a .env file in the root directory.
 
+```sh
+HOST=localhost
+USER=root
+PASS=password
+```
+
 4. Run the bot:
+
 ```sh
 python main.py
 ```
@@ -35,3 +38,7 @@ python main.py
 ## Contributing
 
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+
+## Donate
+
+If you want to provide financial support, you can do so through Patreon, Paypal or Buy Me a Coffee. Any amount is appreciated and will help with the continued development of this project.
