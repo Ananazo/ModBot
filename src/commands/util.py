@@ -3,6 +3,7 @@ from discord.ext import commands
 from discord.commands import Option
 import datetime
 import sqlfu
+from datetime import datetime
 
 class MyModal(discord.ui.Modal):
     def __init__(self):
@@ -23,7 +24,26 @@ class MyModal(discord.ui.Modal):
 class Util(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.start_time = datetime.now()
 
+    @commands.slash_command(description="Get server and bot info")
+    async def info(self, ctx: commands.Context, member: discord.Member):
+        server = ctx.guild
+        uptime = datetime.now() - self.start_time
+        counter = 0  # Initialize counter
+        async for message in ctx.channel.history(limit = 10000):
+            if message.author == member:
+                counter += 1
+        info = (
+            f"Server size: {len(server.members)} members\n"
+            f"Bot uptime: {uptime}\n"
+            f"I'm in {len(self.bot.guilds)} servers!"  # Use self.bot.guilds
+        )
+        if member != None:
+            info += f'{member.mention} has sent **{counter}** messages in this channel.'
+        await ctx.respond(info, ephemeral=True)
+
+        
     @commands.slash_command(description="Get the bot's current latency! (30s cooldown)")
     @commands.cooldown(1, 30, commands.BucketType.user)
     async def ping(self, ctx: commands.Context):
