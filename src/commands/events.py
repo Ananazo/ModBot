@@ -1,6 +1,6 @@
 from discord.ext import commands
 import discord
-import src.sqlfu as sqlfu
+import sqlfu
 
 class Events(commands.Cog):
     def __init__(self, bot):

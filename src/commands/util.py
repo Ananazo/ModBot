@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 from discord.commands import Option
 import datetime
-import src.sqlfu as sqlfu
+import sqlfu
 from datetime import datetime
 
 class MyModal(discord.ui.Modal):

@@ -19,7 +19,7 @@ bot = discord.Bot(intents=intents)
 cogs_list = ['util', 'admin', 'events']
 
 for cog in cogs_list:
-    bot.load_extension(f'src.commands.{cog}')
+    bot.load_extension(f'commands.{cog}')
 
 @tasks.loop(minutes=30)
 async def change_status():
