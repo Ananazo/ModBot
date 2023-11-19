@@ -1,11 +1,69 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz@9..40&display=swap" rel="stylesheet">     
     <title>Login</title>
+    <style>
+        *{
+            color: #ffffff;
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 700; 
+        }
+        body{
+            background-color: #242124;
+        }
+        footer {
+            background-color: #121012;
+            color: #fff;
+            padding: 10px;
+            position: fixed;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+        }
+        a {
+            font-size: 12px;
+        }
+        img {
+            width: 25px;
+            padding-right: 5px;
+        }
+        button{
+            padding: 0px 10px 0px 10px;
+            background-color: #196876;
+            border: none;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        .content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: calc(100vh - 40px);
+            padding-top: 200px; 
+        }
+        .otiskko{
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Welcome to our site!</h1>
-    <p>Please log in to continue.</p>
-    <a href="{{ url_for('login') }}" class="btn btn-primary">Log in</a>
+    <div class="content">
+        <h1 class="otiskko">ModBot</h1>
+        <button onclick="location.href='/login'" type="button">
+            <img src="{{ url_for('static', filename='discord-mark-white.svg') }}" alt="Discord Logo">
+            Login
+        </button>
+    </div>
+    <footer>
+        <a href="https://github.com/Ananazzo/ModBot" target="_blank">Support and info</a>
+    </footer>
 </body>
 </html>
