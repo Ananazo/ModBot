@@ -2,3 +2,5 @@ py-cord
 python-dotenv
 mysql-connector-python
 asyncio
+flask
+requests_oauthlib

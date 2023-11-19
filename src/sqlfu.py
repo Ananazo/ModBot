@@ -3,9 +3,10 @@ import os
 
 mydb = None
 
-def sqlfunc(sql, val):
+def sqlfunc(sql, val): 
     global mydb
     result = None
+    mycursor = None  # Initialize mycursor here
     try:
         if mydb is None or not mydb.is_connected():
             mydb = mysql.connector.connect(
