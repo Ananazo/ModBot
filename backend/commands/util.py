@@ -6,20 +6,18 @@ import sqlfu
 from datetime import datetime
 
 class MyModal(discord.ui.Modal):
-    def __init__(self):
+    def __init__(self, guild):
         super().__init__(title="Feedback")
+        self.guild = guild
         self.add_item(discord.ui.InputText(label="Feedback", style=discord.InputTextStyle.long))
 
     async def callback(self, interaction: discord.Interaction):
-        try:
-            embed = discord.Embed(title="Feedback")
-            value = self.children[0].value
-            embed.add_field(name="**Feedback**", value=value)
-            await interaction.response.send_message(embeds=[embed], ephemeral=True)
-            sqlfu.sqlfunc("INSERT INTO feedback (Date, Giver, Feedback, Guild) VALUES (%s, %s, %s)", 
-                          (datetime.now(), interaction.user.id, value, self.guild.id))
-        except Exception as e:
-            print(f"Error handling feedback: {e}")
+        embed = discord.Embed(title="Feedback")
+        value = self.children[0].value
+        embed.add_field(name="**Feedback**", value=value)
+        await interaction.response.send_message(embeds=[embed], ephemeral=True)
+        sqlfu.sqlfunc("INSERT INTO feedback (Date, Giver, Feedback, Guild) VALUES (%s, %s, %s, %s)", 
+                      (datetime.now(), interaction.user.id, value, self.guild.id))
 
 class Util(commands.Cog):
     def __init__(self, bot):
@@ -50,17 +48,11 @@ class Util(commands.Cog):
 
     @commands.slash_command()
     async def feedback(self, ctx: discord.ApplicationContext):
-        try:
-            await ctx.send_modal(MyModal())
-        except Exception as e:
-            print(f"Error sending feedback modal: {e}")
+        await ctx.send_modal(MyModal(ctx.guild))
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
-        try:
-            await member.send('Welcome to the server!')
-        except Exception as e:
-            print(f"Error sending welcome message: {e}")
+        await member.send('Welcome to the server!')
 
 def setup(bot):
     bot.add_cog(Util(bot))

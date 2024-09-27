@@ -3,6 +3,7 @@ from discord.ext import commands
 from discord.commands import Option
 import datetime 
 import sqlfu
+import asyncio
 
 class GuildSettings(discord.ui.Modal):
     def __init__(self):
@@ -11,14 +12,11 @@ class GuildSettings(discord.ui.Modal):
         self.add_item(discord.ui.InputText(label="Warn Count", placeholder="Enter new Warn Count value"))
 
     async def callback(self, interaction: discord.Interaction):
-        try:
-            testh_value = int(self.children[0].value)
-            warn_count_value = int(self.children[1].value)
-            guild_id = interaction.guild.id
-            sqlfu.sqlfunc("UPDATE guilds SET testh = %s, warn_count = %s WHERE guild = %s", (testh_value, warn_count_value, guild_id))
-            await interaction.response.send_message("Testh and Warn Count updated successfully", ephemeral=True)
-        except Exception as e:
-            print(f"Error updating Testh and Warn Count: {e}")
+        testh_value = int(self.children[0].value)
+        warn_count_value = int(self.children[1].value)
+        guild_id = interaction.guild.id
+        sqlfu.sqlfunc("UPDATE guilds SET testh = %s, warn_count = %s WHERE guild = %s", (testh_value, warn_count_value, guild_id))
+        await interaction.response.send_message("Testh and Warn Count updated successfully", ephemeral=True)
 
 class Admin(commands.Cog):
     def __init__(self, bot):
@@ -33,14 +31,10 @@ class Admin(commands.Cog):
                        (datetime.datetime.now(), ctx.guild.id, ctx.channel.id, ctx.author.id, str(amount+1))) 
         
     async def kick_user(self, ctx, who, reason, guild_id):
-        try:
-            await who.kick(reason=reason)
-            sqlfu.sqlfunc("INSERT INTO kicks (Date, Kicker, Kicked, Reason, Guild) VALUES (%s, %s, %s, %s, %s)", 
-                        (datetime.datetime.now(), ctx.channel.id, str(who.id), str(reason), guild_id))
-            return True
-        except Exception as e:
-            print(f"Error kicking user: {e}")
-            return False
+        await who.kick(reason=reason)
+        sqlfu.sqlfunc("INSERT INTO kicks (Date, Kicker, Kicked, Reason, Guild) VALUES (%s, %s, %s, %s, %s)", 
+                    (datetime.datetime.now(), ctx.channel.id, str(who.id), str(reason), guild_id))
+        return True
 
     @commands.slash_command(description="guild settings")
     @commands.has_permissions(administrator=True)
@@ -58,29 +52,24 @@ class Admin(commands.Cog):
             await ctx.respond(f"Failed to kick {who}", ephemeral=True)
             
     async def warn_user(self, ctx, who, reason):
-        try:
-            guild_id = ctx.guild.id
-            result = sqlfu.sqlfunc("SELECT testh, warn_count FROM guilds WHERE guild = %s", (guild_id,))
-            if result:
-                testh, warn_count = result[0]
-            else:
-                print(f"No settings found for guild: {guild_id}")
-                return False
-
-            sqlfu.sqlfunc("INSERT INTO warns (Date, Warner, Warned, Reason, Guild) VALUES (%s, %s, %s, %s, %s)",
-                        (datetime.datetime.now(), ctx.author.id, str(who.id), str(reason), guild_id))
-            warnings_count = sqlfu.sqlfunc("SELECT COUNT(*) FROM warns WHERE Warned = %s AND Guild = %s", (str(who.id), guild_id))
-            last_kick = sqlfu.sqlfunc("SELECT MAX(Date) FROM kicks WHERE Kicked = %s AND Guild = %s", (str(who.id), guild_id))
-            if last_kick is not None and last_kick[0][0] is not None and (datetime.datetime.now() - last_kick[0][0]).total_seconds() < testh * 60 * 60:
-                await self.ban_user(ctx, who, f"Banned for receiving a warning within {testh} hours of being kicked", 1, guild_id)
-            elif int(warnings_count[0][0]) > int(warn_count):
-                await self.kick_user(ctx, who, f"Kicked for receiving more than {warn_count} warnings", guild_id)
-            ep = discord.Embed(title="You have been warned", description=(f"{str(reason)}\nThis is your {warnings_count[0][0]} warning."), color=discord.Colour.red())
-            await who.send(embed=ep)
-            return True
-        except Exception as e:
-            print(f"Error warning user: {e}")
-            return False
+        guild_id = ctx.guild.id
+        result = sqlfu.sqlfunc("SELECT testh, warn_count FROM guilds WHERE guild = %s", (guild_id,))
+        if result:
+            testh, warn_count = result[0]
+        else:
+            print(f"No settings found for guild: {guild_id}")
+            return 
+        sqlfu.sqlfunc("INSERT INTO warns (Date, Warner, Warned, Reason, Guild) VALUES (%s, %s, %s, %s, %s)",
+                    (datetime.datetime.now(), ctx.author.id, str(who.id), str(reason), guild_id))
+        warnings_count = sqlfu.sqlfunc("SELECT COUNT(*) FROM warns WHERE Warned = %s AND Guild = %s", (str(who.id), guild_id))
+        last_kick = sqlfu.sqlfunc("SELECT MAX(Date) FROM kicks WHERE Kicked = %s AND Guild = %s", (str(who.id), guild_id))
+        if last_kick is not None and last_kick[0][0] is not None and (datetime.datetime.now() - last_kick[0][0]).total_seconds() < testh * 60 * 60:
+            await self.ban_user(ctx, who, f"Banned for receiving a warning within {testh} hours of being kicked", 1, guild_id)
+        elif int(warnings_count[0][0]) > int(warn_count):
+            await self.kick_user(ctx, who, f"Kicked for receiving more than {warn_count} warnings", guild_id)
+        ep = discord.Embed(title="You have been warned", description=(f"{str(reason)}\nThis is your {warnings_count[0][0]} warning."), color=discord.Colour.red())
+        await who.send(embed=ep)
+        return True
 
     @commands.slash_command(description="Warn")
     @commands.has_permissions(administrator=True)
@@ -91,14 +80,10 @@ class Admin(commands.Cog):
             await ctx.respond(f"Failed to warn {who}", ephemeral=True)
 
     async def ban_user(self, ctx, who, reason, duration, guild_id):
-        try:
-            await ctx.guild.ban(who, reason=reason)
-            sqlfu.sqlfunc("INSERT INTO bans (Date, Banner, Banned, Reason, Duration, Guild) VALUES (%s, %s, %s, %s, %s, %s)",
-                        (datetime.datetime.now(), ctx.author.id, str(who.id), str(reason), duration, guild_id))
-            return True
-        except Exception as e:
-            print(f"Error banning user: {e}")
-            return False
+        await ctx.guild.ban(who, reason=reason)
+        sqlfu.sqlfunc("INSERT INTO bans (Date, Banner, Banned, Reason, Duration, Guild) VALUES (%s, %s, %s, %s, %s, %s)",
+                    (datetime.datetime.now(), ctx.author.id, str(who.id), str(reason), duration, guild_id))
+        return True
 
     @commands.slash_command(description="Ban")
     @commands.has_permissions(administrator=True)
@@ -112,10 +97,7 @@ class Admin(commands.Cog):
 
     async def unban_after_delay(self, ctx, who, duration):
         await asyncio.sleep(duration * 60 * 60)
-        try:
-            await ctx.guild.unban(who)
-        except Exception as e:
-            print(f"Error unbanning user: {e}")
+        await ctx.guild.unban(who)
 
     @commands.Cog.listener()
     async def on_application_command_error(self, ctx, error):
